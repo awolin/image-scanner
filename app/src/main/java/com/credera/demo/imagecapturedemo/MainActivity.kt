@@ -63,7 +63,6 @@ class MainActivity : AppCompatActivity() {
 
         Glide.with(this).load(R.drawable.receipt_image).into(receipt_before_imageview)
 
-        // Testing .gitignore.
 
 //        capture_image_btn.setOnClickListener {
 //            takePhoto(it)
