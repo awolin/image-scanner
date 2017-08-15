@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
@@ -13,22 +12,21 @@ import android.support.v4.content.FileProvider
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
-import android.widget.Toast
 import com.bumptech.glide.Glide
 import kotlinx.android.synthetic.main.activity_main.*
 import org.opencv.android.BaseLoaderCallback
 import org.opencv.android.LoaderCallbackInterface
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
-import org.opencv.core.*
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
-import org.opencv.utils.Converters
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 
 const val REQUEST_IMAGE_CAPTURE = 1
@@ -52,7 +50,7 @@ class MainActivity : AppCompatActivity() {
                     setContrast(beforeImage)
                 }
                 else ->
-                        super.onManagerConnected(status)
+                    super.onManagerConnected(status)
             }
         }
     }
@@ -129,15 +127,33 @@ class MainActivity : AppCompatActivity() {
         // Convert to grayscale
         val edges = Mat(rgba.size(), CvType.CV_8UC1)
         Imgproc.cvtColor(rgba, edges, Imgproc.COLOR_BGR2GRAY, 4)
-//        Imgproc.GaussianBlur(edges, edges, Size(5.0, 5.0), 0.0)
-        Imgproc.GaussianBlur(edges, edges, Size(1.0, 1.0), 0.0, 0.0)
-//        Imgproc.threshold(edges, edges, 128.0, 255.0, Imgproc.THRESH_BINARY)
-        Imgproc.threshold(edges, edges, 120.0, 255.0, Imgproc.THRESH_BINARY)
-//        Imgproc.Canny(edges, edges, 80.0, 100.0)
+
+
+//        standardThreshold(edges)
+//        adaptiveGaussianThreshold(edges)
+        adaptiveGaussianWithOtsu(edges)
 
         val result = Bitmap.createBitmap(edges.cols(), edges.rows(), Bitmap.Config.ARGB_8888)
         Utils.matToBitmap(edges, result)
         BitmapHelper.showBitmap(this, result, receipt_after_imageview)
+    }
+
+    fun standardThreshold(image: Mat) {
+        //        Imgproc.GaussianBlur(edges, edges, Size(5.0, 5.0), 0.0)
+        Imgproc.GaussianBlur(image, image, Size(1.0, 1.0), 0.0, 0.0)
+//        Imgproc.threshold(edges, edges, 128.0, 255.0, Imgproc.THRESH_BINARY)
+        Imgproc.threshold(image, image, 120.0, 255.0, Imgproc.THRESH_BINARY)
+//        Imgproc.Canny(edges, edges, 80.0, 100.0)
+    }
+
+    fun adaptiveGaussianThreshold(image: Mat) {
+        Imgproc.adaptiveThreshold(image, image, 255.0, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 11, 2.0)
+    }
+
+    fun adaptiveGaussianWithOtsu(image: Mat) {
+//        val blur = Mat()
+//        Imgproc.GaussianBlur(image, blur, Size(5.0, 5.0), 0.0)
+        Imgproc.threshold(image, image, 0.0, 255.0, Imgproc.THRESH_BINARY + Imgproc.THRESH_OTSU)
     }
 
     fun calcScaleFactor(rows: Int, cols: Int): Int {
