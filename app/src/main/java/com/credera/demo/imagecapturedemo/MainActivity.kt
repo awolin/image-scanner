@@ -12,6 +12,7 @@ import android.support.v4.content.FileProvider
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
+import android.widget.SeekBar
 import com.bumptech.glide.Glide
 import kotlinx.android.synthetic.main.activity_main.*
 import org.opencv.android.BaseLoaderCallback
@@ -47,6 +48,7 @@ class MainActivity : AppCompatActivity() {
                 LoaderCallbackInterface.SUCCESS -> {
                     Log.i(MainActivity::javaClass.name, "OpenCV loaded.")
                     val beforeImage = BitmapFactory.decodeResource(resources, R.drawable.receipt_image)
+
                     setContrast(beforeImage)
                 }
                 else ->
@@ -59,7 +61,26 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Load the original image
         Glide.with(this).load(R.drawable.receipt_image).into(receipt_before_imageview)
+
+        // Progress bar for changing between original and processed
+        seekBar.progress = 100;
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    receipt_after_imageview.alpha = (progress * 0.01).toFloat()
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+            }
+        })
 
 
 //        capture_image_btn.setOnClickListener {
@@ -67,8 +88,11 @@ class MainActivity : AppCompatActivity() {
 //        }
     }
 
+
     override fun onResume() {
         super.onResume()
+
+        // Process the original image
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_3_0, this, callback)
     }
 
@@ -120,27 +144,41 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun setContrast(bitmap: Bitmap) {
+
         // Read the bitmap
         val rgba = Mat()
         Utils.bitmapToMat(bitmap, rgba)
 
         // Convert to grayscale
-        val edges = Mat(rgba.size(), CvType.CV_8UC1)
+        val edges = rgba//Mat(rgba.size(), CvType.CV_8UC1)
         Imgproc.cvtColor(rgba, edges, Imgproc.COLOR_BGR2GRAY, 4)
 
+        // Blurs
+        Imgproc.GaussianBlur(edges, edges, Size(3.0, 3.0), 0.0)
+//        Imgproc.medianBlur(edges, edges, 3)
 
+        // Filters
 //        standardThreshold(edges)
+//        thresholdToZero(edges)
+//        thresholdToZeroInverted(edges)
 //        adaptiveGaussianThreshold(edges)
-        adaptiveGaussianWithOtsu(edges)
+//        adaptiveGaussianWithOtsu(edges)
+//        adaptiveMean(edges)
+//        adaptiveGaussianThreshold(edges)
+//        adaptiveMean(edges)
 
+        adaptiveMean(edges)
+
+        // Convert the Mat to a bitmap
         val result = Bitmap.createBitmap(edges.cols(), edges.rows(), Bitmap.Config.ARGB_8888)
         Utils.matToBitmap(edges, result)
+
         BitmapHelper.showBitmap(this, result, receipt_after_imageview)
     }
 
     fun standardThreshold(image: Mat) {
         //        Imgproc.GaussianBlur(edges, edges, Size(5.0, 5.0), 0.0)
-        Imgproc.GaussianBlur(image, image, Size(1.0, 1.0), 0.0, 0.0)
+//        Imgproc.GaussianBlur(image, image, Size(1.0, 1.0), 0.0, 0.0)
 //        Imgproc.threshold(edges, edges, 128.0, 255.0, Imgproc.THRESH_BINARY)
         Imgproc.threshold(image, image, 120.0, 255.0, Imgproc.THRESH_BINARY)
 //        Imgproc.Canny(edges, edges, 80.0, 100.0)
@@ -154,6 +192,20 @@ class MainActivity : AppCompatActivity() {
 //        val blur = Mat()
 //        Imgproc.GaussianBlur(image, blur, Size(5.0, 5.0), 0.0)
         Imgproc.threshold(image, image, 0.0, 255.0, Imgproc.THRESH_BINARY + Imgproc.THRESH_OTSU)
+    }
+
+    fun thresholdToZero(image: Mat) {
+        val threshold = 128.0 // TODO: Calculate from the image?
+        Imgproc.threshold(image, image, threshold, 255.0, Imgproc.THRESH_TOZERO)
+    }
+
+    fun thresholdToZeroInverted(image: Mat) {
+        val threshold = 228.0 // TODO: Calculate from the image?
+        Imgproc.threshold(image, image, threshold, 255.0, Imgproc.THRESH_TOZERO_INV)
+    }
+
+    fun adaptiveMean(image: Mat) {
+        Imgproc.adaptiveThreshold(image, image, 255.0, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 27, 12.0)
     }
 
     fun calcScaleFactor(rows: Int, cols: Int): Int {

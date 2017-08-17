@@ -1,5 +1,11 @@
 package com.credera.demo.imagecapturedemo;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,12 +14,8 @@ import android.os.Environment;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.signature.ObjectKey;
 
 public class BitmapHelper {
 
@@ -30,7 +32,11 @@ public class BitmapHelper {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, baos);
         byte[] data = baos.toByteArray();
-        Glide.with(context).load(data).into(imageView);
+
+        RequestOptions glideOptions = new RequestOptions()
+                //.skipMemoryCache(true)
+                .signature(new ObjectKey(String.valueOf(System.currentTimeMillis())));
+        Glide.with(context).load(data).apply(glideOptions).into(imageView);
     }
 
     public static Bitmap readBitmapFromPath(Context context, Uri path) throws Exception {
@@ -42,7 +48,8 @@ public class BitmapHelper {
         return bitmap;
     }
 
-    public static void writeToPublicDirectory(String filename, byte[] data, String directory, String environmentDirectory) throws Exception {
+    public static void writeToPublicDirectory(String filename, byte[] data, String directory,
+            String environmentDirectory) throws Exception {
         File publicDirectory = new File(Environment.getExternalStoragePublicDirectory(environmentDirectory), directory);
         boolean result = publicDirectory.mkdirs();
         File targetFile = new File(publicDirectory, filename);
@@ -51,7 +58,8 @@ public class BitmapHelper {
         fileOutputStream.close();
     }
 
-    public static void writeToPublicDirectory(String filename, String string, String directory, String environmentDirectory) throws Exception {
+    public static void writeToPublicDirectory(String filename, String string, String directory,
+            String environmentDirectory) throws Exception {
         File publicDirectory = new File(Environment.getExternalStoragePublicDirectory(environmentDirectory), directory);
         boolean result = publicDirectory.mkdirs();
         File file = new File(publicDirectory, filename);
